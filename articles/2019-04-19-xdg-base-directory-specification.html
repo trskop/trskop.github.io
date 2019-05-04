@@ -25,7 +25,7 @@
     
 </div>
 
-<p><a href="https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html">XDG Base Directory Specification</a> provides a lot of interesting directories that can be used to avoid clutter in ones <code>$HOME</code>. Unfortunately, these directories can be overriden using environment variables. This is annoying to work with, unless one knows how they should be properly resolved. In here we will describe how they should be resolved in various languages.</p>
+<p><a href="https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html">XDG Base Directory Specification</a> provides a lot of interesting directories that can be used to avoid clutter in one’s <code>$HOME</code>. Unfortunately, these directories can be overriden using environment variables. This is annoying to work with, unless one knows how they should be properly resolved. In here we will describe how they should be resolved in various languages.</p>
 <h1 id="bash">Bash</h1>
 <div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb1-1" title="1"><span class="bu">readonly</span> <span class="va">config_dir=</span><span class="st">&quot;</span><span class="va">${XDG_CONFIG_HOME:-${HOME}</span>/.config<span class="va">}</span><span class="st">&quot;</span></a>
 <a class="sourceLine" id="cb1-2" title="2"><span class="bu">readonly</span> <span class="va">data_dir=</span><span class="st">&quot;</span><span class="va">${XDG_DATA_HOME:-${HOME}</span>/.local/share<span class="va">}</span><span class="st">&quot;</span></a>
