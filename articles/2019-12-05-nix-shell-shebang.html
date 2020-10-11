@@ -1,23 +1,26 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
     <head>
+        <meta charset="utf-8" />
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
         <title>Grimoire</title>
         <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/highlight.css" />
     </head>
     <body>
-        <div id="header">
+        
+        <header>
             <div id="logo">
                 <a href="../">Grimoire</a>
             </div>
-            <div id="navigation">
+            <nav>
                 <a href="../">Home</a>
                 <a href="../archive.html">Spell Archive</a>
-            </div>
-        </div>
+            </nav>
+        </header>
 
-        <div id="content">
+        <article>
             <h1>Shebang nix-shell</h1>
 
             <div class="info">
@@ -28,74 +31,77 @@
 <p>Using <code>nix-shell</code> this way allows us to create scripts that describe their own dependencies.</p>
 <h1 id="usage">Usage</h1>
 <p>Basic usage:</p>
-<pre><code>#!/usr/bin/env nix-shell
+<pre class="code-block"><code>#!/usr/bin/env nix-shell
 #!nix-shell [OPTIONS] -i INTERPRETER [--packages PACKAGES|-p PACKAGES|PATH]
 [#!nix-shell OPTIONS]</code></pre>
 <p>As shown above line <code>#!nix-shell</code> can be repeated. These lines are parsed by <code>nix-shell</code> itself, which differs slightly from how shell would parse them. For example <strong>single quotes do not work</strong>, and double quotes must be used when e.g. specifying Nix expression.</p>
 <p>Somewhat useful documentation can be found in <a href="https://nixos.org/nix/manual/#sec-nix-shell"><code>nix-shell(1)</code></a> manual page.</p>
 <h1 id="bash-script">Bash Script</h1>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1"></a><span class="co">#!/usr/bin/env nix-shell</span></span>
-<span id="cb2-2"><a href="#cb2-2"></a><span class="co">#!nix-shell -i bash -p curl</span></span>
-<span id="cb2-3"><a href="#cb2-3"></a></span>
-<span id="cb2-4"><a href="#cb2-4"></a><span class="co"># shellcheck shell=bash</span></span>
-<span id="cb2-5"><a href="#cb2-5"></a></span>
-<span id="cb2-6"><a href="#cb2-6"></a><span class="kw">set</span> <span class="ex">-euo</span> pipefail</span>
-<span id="cb2-7"><a href="#cb2-7"></a></span>
-<span id="cb2-8"><a href="#cb2-8"></a><span class="kw">function</span><span class="fu"> main()</span> <span class="kw">{</span></span>
-<span id="cb2-9"><a href="#cb2-9"></a>    <span class="bu">:</span> TODO</span>
-<span id="cb2-10"><a href="#cb2-10"></a><span class="kw">}</span></span>
-<span id="cb2-11"><a href="#cb2-11"></a></span>
-<span id="cb2-12"><a href="#cb2-12"></a><span class="ex">main</span> <span class="st">&quot;</span><span class="va">$@</span><span class="st">&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode code-block bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="co">#!/usr/bin/env nix-shell</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="co">#!nix-shell -i bash -p curl</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a><span class="co"># shellcheck shell=bash</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a><span class="kw">set</span> <span class="ex">-euo</span> pipefail</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a><span class="kw">function</span><span class="fu"> main()</span> <span class="kw">{</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a>    <span class="bu">:</span> TODO</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a><span class="kw">}</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true"></a><span class="ex">main</span> <span class="st">&quot;</span><span class="va">$@</span><span class="st">&quot;</span></span></code></pre></div>
 <h1 id="haskell-shakefile">Haskell (Shakefile)</h1>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1"></a><span class="pp">#!/usr/bin/env nix-shell</span></span>
-<span id="cb3-2"><a href="#cb3-2"></a><span class="pp">#!nix-shell -i runghc</span></span>
-<span id="cb3-3"><a href="#cb3-3"></a><span class="pp">#!nix-shell -p &quot;haskellPackages.ghcWithPackages (pkgs: with pkgs; [ directory executable-path shake ])&quot;</span></span>
-<span id="cb3-4"><a href="#cb3-4"></a></span>
-<span id="cb3-5"><a href="#cb3-5"></a><span class="ot">{-# LANGUAGE BlockArguments #-}</span></span>
-<span id="cb3-6"><a href="#cb3-6"></a><span class="ot">{-# LANGUAGE RecordWildCards #-}</span></span>
-<span id="cb3-7"><a href="#cb3-7"></a></span>
-<span id="cb3-8"><a href="#cb3-8"></a><span class="ot">{-# OPTIONS_GHC -Wall -Wcompat #-}</span></span>
-<span id="cb3-9"><a href="#cb3-9"></a></span>
-<span id="cb3-10"><a href="#cb3-10"></a><span class="kw">module</span> <span class="dt">Main</span> (main)</span>
-<span id="cb3-11"><a href="#cb3-11"></a>  <span class="kw">where</span></span>
-<span id="cb3-12"><a href="#cb3-12"></a></span>
-<span id="cb3-13"><a href="#cb3-13"></a><span class="kw">import</span> <span class="dt">Development.Shake</span></span>
-<span id="cb3-14"><a href="#cb3-14"></a></span>
-<span id="cb3-15"><a href="#cb3-15"></a></span>
-<span id="cb3-16"><a href="#cb3-16"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb3-17"><a href="#cb3-17"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb3-18"><a href="#cb3-18"></a>    opts<span class="op">@</span><span class="dt">Options</span>{<span class="op">..</span>} <span class="ot">&lt;-</span> getOptions</span>
-<span id="cb3-19"><a href="#cb3-19"></a>    shakeMain opts shakeOptions</span>
-<span id="cb3-20"><a href="#cb3-20"></a>        { shakeColor <span class="ot">=</span> <span class="dt">True</span></span>
-<span id="cb3-21"><a href="#cb3-21"></a><span class="co">--      , shakeFiles = ...</span></span>
-<span id="cb3-22"><a href="#cb3-22"></a><span class="co">--      , shakeVersion = ...</span></span>
-<span id="cb3-23"><a href="#cb3-23"></a><span class="co">--      , shakeChange = ChangeDigest</span></span>
-<span id="cb3-24"><a href="#cb3-24"></a><span class="co">--      , shakeExtra = ...</span></span>
-<span id="cb3-25"><a href="#cb3-25"></a>        }</span>
-<span id="cb3-26"><a href="#cb3-26"></a></span>
-<span id="cb3-27"><a href="#cb3-27"></a><span class="kw">data</span> <span class="dt">Options</span> <span class="ot">=</span> <span class="dt">Options</span></span>
-<span id="cb3-28"><a href="#cb3-28"></a>    {<span class="ot"> shakeOptions ::</span> <span class="dt">ShakeOptions</span></span>
-<span id="cb3-29"><a href="#cb3-29"></a><span class="co">--  , ...</span></span>
-<span id="cb3-30"><a href="#cb3-30"></a>    }</span>
-<span id="cb3-31"><a href="#cb3-31"></a></span>
-<span id="cb3-32"><a href="#cb3-32"></a><span class="co">-- | Figure some things that don't need to be tracked by Shake.</span></span>
-<span id="cb3-33"><a href="#cb3-33"></a><span class="ot">getOptions ::</span> <span class="dt">IO</span> <span class="dt">Options</span></span>
-<span id="cb3-34"><a href="#cb3-34"></a>getOptions <span class="ot">=</span> <span class="fu">undefined</span>  <span class="co">-- TODO</span></span>
-<span id="cb3-35"><a href="#cb3-35"></a></span>
-<span id="cb3-36"><a href="#cb3-36"></a><span class="ot">shakeMain ::</span> <span class="dt">ShakeOptions</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
-<span id="cb3-37"><a href="#cb3-37"></a>shakeMain <span class="ot">=</span> shareArgs opts <span class="kw">do</span></span>
-<span id="cb3-38"><a href="#cb3-38"></a>    <span class="op">...</span></span>
-<span id="cb3-39"><a href="#cb3-39"></a></span>
-<span id="cb3-40"><a href="#cb3-40"></a>    want</span>
-<span id="cb3-41"><a href="#cb3-41"></a>        [ <span class="op">...</span></span>
-<span id="cb3-42"><a href="#cb3-42"></a>        ]</span>
-<span id="cb3-43"><a href="#cb3-43"></a></span>
-<span id="cb3-44"><a href="#cb3-44"></a>    <span class="op">...</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode code-block haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="pp">#!/usr/bin/env nix-shell</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="pp">#!nix-shell -i runghc</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a><span class="pp">#!nix-shell -p &quot;haskellPackages.ghcWithPackages (pkgs: with pkgs; [ directory executable-path shake ])&quot;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a><span class="ot">{-# LANGUAGE BlockArguments #-}</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a><span class="ot">{-# LANGUAGE RecordWildCards #-}</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a><span class="ot">{-# OPTIONS_GHC -Wall -Wcompat #-}</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">Main</span> (main)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Development.Shake</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true"></a></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true"></a>    opts<span class="op">@</span><span class="dt">Options</span>{<span class="op">..</span>} <span class="ot">&lt;-</span> getOptions</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true"></a>    shakeMain opts shakeOptions</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true"></a>        { shakeColor <span class="ot">=</span> <span class="dt">True</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true"></a><span class="co">--      , shakeFiles = ...</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true"></a><span class="co">--      , shakeVersion = ...</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true"></a><span class="co">--      , shakeChange = ChangeDigest</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true"></a><span class="co">--      , shakeExtra = ...</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true"></a>        }</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true"></a></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Options</span> <span class="ot">=</span> <span class="dt">Options</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true"></a>    {<span class="ot"> shakeOptions ::</span> <span class="dt">ShakeOptions</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true"></a><span class="co">--  , ...</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true"></a>    }</span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true"></a></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true"></a><span class="co">-- | Figure some things that don't need to be tracked by Shake.</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true"></a><span class="ot">getOptions ::</span> <span class="dt">IO</span> <span class="dt">Options</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true"></a>getOptions <span class="ot">=</span> <span class="fu">undefined</span>  <span class="co">-- TODO</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true"></a></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true"></a><span class="ot">shakeMain ::</span> <span class="dt">ShakeOptions</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true"></a>shakeMain <span class="ot">=</span> shareArgs opts <span class="kw">do</span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true"></a>    <span class="op">...</span></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true"></a></span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true"></a>    want</span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true"></a>        [ <span class="op">...</span></span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true"></a>        ]</span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true"></a></span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true"></a>    <span class="op">...</span></span></code></pre></div>
 
-        </div>
+        </article>
 
-        <div id="footer">
+        <footer>
             Generated by <a href="http://jaspervdj.be/hakyll">Hakyll</a>
-        </div>
+        </footer>
     </body>
+
+    <script src="../js/copy-code.js"></script>
+    <script src="../js/heading-anchors.js"></script>
 </html>

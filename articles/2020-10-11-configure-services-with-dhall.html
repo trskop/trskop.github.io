@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+        <title>Grimoire</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/highlight.css" />
+    </head>
+    <body>
+        
+        <header>
+            <div id="logo">
+                <a href="../">Grimoire</a>
+            </div>
+            <nav>
+                <a href="../">Home</a>
+                <a href="../archive.html">Spell Archive</a>
+            </nav>
+        </header>
+
+        <article>
+            <h1>Configure services with Dhall</h1>
+
+            <div class="info">
+    Posted on 11 October 2020
+    
+</div>
+
+<p>For services, running inside a docker container, parsing command line options may be an overkill. Adding an option every time we need a new configuration value does feel like a lost effort. In addition, the contract between the service and outside world is getting more and more complicated, increasing the likelihood of misconfiguration.</p>
+<p>What we can do about it? We can use a proper configuration language instead. In many languages we can actually derive parsing and serialisation code using some form of meta programming or generics making it the overhead even smaller.</p>
+<p>A lot of services, these days, use YAML, JSON, or some INI-style configuration, but we won’t be talking about those. There’s a lot of articles on the internet on this topic and we don’t need to duplicate it. Here we’ll focus on services written in Haskell that are using <a href="https://dhall-lang.org/">Dhall configuration language</a>. Here are some of the things that are special when it comes to this pairing:</p>
+<ul>
+<li><p>We can easily derive parsing of Dhall configuration even for complex types. This includes even functions.</p></li>
+<li><p>Dhall itself is typed and allows us to use more specific types. Giving us more precise parsing and error messages when attempting to start the service with an incorrect configuration.</p>
+<p>One of the biggest advantage of this approach, as opposed to the multiple options approach, is that we get all the errors at once instead of for the first option that is missing.</p></li>
+<li><p>Typed configuration language allows us to type check the configuration file before we even attempt to run the application in kind of a dry-run mode.</p>
+<p>Dhall is very good at this and will be able to tell us not only that types are mismatched, but also how. For example, it is able to tell as that we are missing or have extra fields in a record. This is particularly useful for spotting typos.</p></li>
+<li><p>Dhall’s powerful import system allows us to be flexible and adapt to needs of our infrastructure much more easily. Most of the time it doesn’t even require changing our service.</p></li>
+</ul>
+<p>Some related articles:</p>
+<ul>
+<li><p><a href="https://dhall-lang.org">“The Dhall configuration language” homepage</a></p></li>
+<li><p><a href="https://docs.dhall-lang.org/references/Built-in-types.html#imports">Dhall - References - Built-in types, functions, and operators: Imports</a></p></li>
+</ul>
+<h1 id="minimalistic-command-line-contract">Minimalistic Command-line Contract</h1>
+<p>While there are myriad of way this can be defined, the simplest of them that can be easily used with containers is just providing <code>CONFIG</code> environment variable:</p>
+<pre class="code-block"><code>CONFIG=EXPR EXECUTABLE</code></pre>
+<p>While this is certainly useful, it doesn’t allow us to use the full power of Haskell and Dhall pairing. Instead, we’ll use the following command-line contract for our <code>EXECUTABLE</code>s:</p>
+<pre class="code-block"><code>[CONFIG=EXPR] EXECUTABLE [--config=EXPR] [--typecheck]
+EXECUTABLE --print-config-type</code></pre>
+<p>We have two ways of how we can pass the configuration value:</p>
+<ul>
+<li><p><code>CONFIG=EXPR</code> environment variable where the value is a Dhall expression. For example simple server may need this:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode code-block bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="bu">export</span> <span class="va">CONFIG=</span><span class="st">'</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="st">  { api =</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a><span class="st">    { port = 8080</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a><span class="st">    , host = None Text</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a><span class="st">    }</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a><span class="st">  , healthApi =</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a><span class="st">    { port = 8090</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a><span class="st">    , host = None Text</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a><span class="st">    }</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a><span class="st">  }'</span></span></code></pre></div></li>
+<li><p><code>--config=EXPR</code> command line option. This is the same as passing it the configuration through environment variable, but it should be noted that if we allow server to support Dhall imports then following will work out of the box:</p>
+<ul>
+<li><p><code>--config=FILE</code> where <code>FILE</code> is an absolute file path or one starting with <code>./</code> or <code>~/</code>. This allows us to handle passing files out of the box without needing to handle it explicitly or to provide another option like <code>--config-file=FILE</code></p></li>
+<li><p><code>--config=env:ENV_VAR</code> where <code>ENV_VAR</code> is a name of an environment variable. This actually allows us to use different environment variable than <code>CONFIG</code> if the situation requires it.</p></li>
+</ul></li>
+</ul>
+<p>In addition to that we have two additional configuration options:</p>
+<ul>
+<li><p><code>--typecheck</code> that allows us to run the <code>EXECUTABLE</code> in dry-run mode where we only parse and type-check the configuration.</p>
+<p>We can make this part of our build or deployment pipeline to verify that we hadn’t forgotten to update the configuration before we attempt to start the service/container.</p></li>
+<li><p><code>--print-config-type</code> is a very useful way of querying the <code>EXECUTABLE</code> it self to tell us what it’s configuration looks like. There’s nothing easier than running <code>EXECUTABLE --print-config-type</code>, saving it into a file, and then writing the config file based on it.</p></li>
+</ul>
+<p>Something that should be noted about the following calling convention:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode code-block bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a>[<span class="va">CONFIG=</span>EXPR] <span class="ex">EXECUTABLE</span> [--config=EXPR] [--typecheck]</span></code></pre></div>
+<p>Is that at least either <code>CONFIG=EXPR</code> or <code>--config=EXPR</code> must be supplied when running the service. This is to avoid having defaults in our services. While it can be useful to start the service with test configuration, it can easily lead to production misconfiguration.</p>
+<p>Some related articles:</p>
+<ul>
+<li><p><a href="https://docs.dhall-lang.org/references/Built-in-types.html#imports">Dhall - References - Built-in types, functions, and operators: Imports</a></p></li>
+<li><p><a href="https://docs.docker.com/engine/reference/commandline/run/#set-environment-variables--e---env---env-file">Command-line reference - docker run: Set environment variables (-e, --env, --env-file)</a></p></li>
+<li><p><a href="https://docs.docker.com/engine/reference/commandline/run/#mount-volume--v---read-only">Command-line reference - docker run: Mount volume (-v, –read-only)</a></p></li>
+</ul>
+<h1 id="keep-your-secrets">Keep Your Secrets</h1>
+<p>The way secrets are exposed to a service running in a container can be classified into following methods:</p>
+<ol type="1">
+<li><p>Environment variables — secrets are exported as a set of environment variables available inside the container.</p></li>
+<li><p>Configuration files — secrets are written into configuration files that are then volume mounted into the container for the service to access.</p></li>
+<li><p>Secrets API — service has to retrieve it itself through an API that’s usually some kind of key-value store with security of secrets in mind.</p>
+<p>This approach is not covered in this article, but it’s easy to change our configuration definition to use something like (example is hypothetical and is written in Dhall):</p>
+<pre class="code-block dhall"><code>let Secret = &lt; Value : Text | Reference : Text &gt;
+
+in  { database =
+      { host = &quot;database.example.com&quot;
+      , port = 5432
+      , user = Secret.Reference &quot;db-user&quot;
+      , password = Secret.Reference &quot;db-password&quot;
+      }
+    , api = { port = 8080, host = None Text }
+    , healthApi = { port = 8090, host = None Text }
+    }</code></pre>
+<p>When the application loads the configuration file it knows that it needs to fetch the secrets through the secrets API using provided reference, probably a key to lookup in the key-value store. Other approaches are possible as well.</p></li>
+</ol>
+<p>We can handle methods 1 and 2 in pure Dhall allowing us to decouple a lot of infrastructure specific decisions from how services are built. In other words, we don’t need to change the service if we decide to rename an environment variable or a configuration file. We can even switch between environment variables and files without needing to touch the code. The only exception is the third method, as this requires the application to understand the API for retrieving secrets.</p>
+<p>Some related articles:</p>
+<ul>
+<li><p><a href="https://kubernetes.io/docs/concepts/configuration/secret/">Kubernetes Documentation - Concepts - Configuration - Secrets</a> — describes all the possible ways how secrets can be exposed to a pod (and container) when using Kubernetes.</p></li>
+<li><p><a href="https://cloud.google.com/solutions/best-practices-for-operating-containers#ensure_that_your_containers_are_stateless_and_immutable">Google Cloud - Solutions - Architectures - Best practices for operating containers: Ensure that your containers are stateless and immutable</a> — describes best practices for accessing configuration in a container.</p></li>
+<li><p><a href="https://docs.docker.com/engine/reference/commandline/run/#set-environment-variables--e---env---env-file">Command-line reference - docker run: Set environment variables (-e, --env, --env-file)</a></p></li>
+<li><p><a href="https://docs.docker.com/engine/reference/commandline/run/#mount-volume--v---read-only">Command-line reference - docker run: Mount volume (-v, –read-only)</a></p></li>
+</ul>
+<h2 id="environment-variables">Environment Variables</h2>
+<p>Dhall supports imports in the form <code>env:ENV_VAR</code> where <code>ENV_VAR</code> is a name of an environment variable. What it allows us to do is:</p>
+<pre class="code-block dhall"><code>{ database =
+  { host = &quot;database.example.com&quot;
+  , port = 5432
+  , user = env:DB_USER as Text
+  , password = env:DB_PASSWORD as Text
+  }
+, api = { port = 8080, host = None Text }
+, healthApi = { port = 8090, host = None Text }
+}</code></pre>
+<p>Where <code>DB_USER</code> and <code>DB_PASSWORD</code> are environment variables containing secrets.</p>
+<p>The <code>env:ENV_VAR as Text</code> means that the value of <code>ENV_VAR</code> will be treated as is, instead of Dhall expression.</p>
+<p>Some related articles:</p>
+<ul>
+<li><p><a href="https://docs.dhall-lang.org/references/Built-in-types.html#imports">Dhall - References - Built-in types, functions, and operators: Imports</a></p></li>
+<li><p><a href="https://docs.docker.com/engine/reference/commandline/run/#set-environment-variables--e---env---env-file">Command-line reference - docker run: Set environment variables (-e, --env, --env-file)</a></p></li>
+</ul>
+<h2 id="configuration-files">Configuration Files</h2>
+<p>File paths are imports in Dhall the same way as <code>env:ENV_VAR</code> or an URL is. This allows us to easily use the same syntax to access files:</p>
+<pre class="code-block dhall"><code>{ database =
+  { host = &quot;database.example.com&quot;
+  , port = 5432
+  , user = /config/db-user as Text
+  , password = /config/db-password as Text
+  }
+, api = { port = 8080, host = None Text }
+, healthApi = { port = 8090, host = None Text }
+}</code></pre>
+<p>Where <code>/config/db-user</code> and <code>/config/db-passowrd</code> are files volume mounted into the container and they contain the secrets.</p>
+<p>The <code>env:ENV_VAR as Text</code> means that the value of <code>ENV_VAR</code> will be treated as is, instead of Dhall expression.</p>
+<p>Some related articles:</p>
+<ul>
+<li><p><a href="https://docs.dhall-lang.org/references/Built-in-types.html#imports">Dhall - References - Built-in types, functions, and operators: Imports</a></p></li>
+<li><p><a href="https://docs.docker.com/engine/reference/commandline/run/#mount-volume--v---read-only">Command-line reference - docker run: Mount volume (-v, –read-only)</a></p></li>
+</ul>
+<h1 id="example-implementation">Example Implementation</h1>
+<p>Here we will present an example implementation that uses the well known <a href="https://hackage.haskell.org/package/optparse-applicative"><code>optparse-applicative</code></a> library. However, this library doesn’t handle environment variables on it’s own and we’ll have to handle that part on ourselves.</p>
+<p>In the presented example we are being very explicit, which includes <code>NoImplicitPrelude</code> and usage of explicit import lists. This makes the imports section more verbose, but better for readability in an article. When reading the example it may be best to skip the module header and imports sections, at first, and go back to them later.</p>
+<p>The implementation is split into two modules <code>Main</code> and <code>Configuration</code>. We’ll start with the <code>Main</code> (Haskell entry point) to set the stage:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode code-block haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="ot">{-# LANGUAGE DeriveAnyClass #-}</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a><span class="ot">{-# LANGUAGE DeriveGeneric #-}</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a><span class="ot">{-# LANGUAGE DerivingStrategies #-}</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a><span class="ot">{-# LANGUAGE DuplicateRecordFields #-}</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a><span class="ot">{-# LANGUAGE NoImplicitPrelude #-}</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true"></a><span class="co">-- |</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true"></a><span class="co">-- Description: An example of a service configured using Dhall</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true"></a><span class="co">-- Copyright:   (c) 2020 Peter Trško</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true"></a><span class="co">-- License:     BSD3</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true"></a><span class="co">--</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true"></a><span class="co">-- An example of a service executable configured using Dhall passed using</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true"></a><span class="co">-- command-line options or an environment variable.</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">Main</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true"></a>    ( main</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true"></a>    )</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true"></a></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Maybe</span> (<span class="dt">Maybe</span>)</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Semigroup</span> ((&lt;&gt;))</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.String</span> (<span class="dt">String</span>)</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Word</span> (<span class="dt">Word16</span>)</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">GHC.Generics</span> (<span class="dt">Generic</span>)</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">System.IO</span> (<span class="dt">IO</span>, print)</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Text.Show</span> (<span class="dt">Show</span>)</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true"></a></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Dhall</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Options.Applicative</span> <span class="kw">as</span> <span class="dt">Options</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true"></a></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Configuration</span> (getConfiguration)</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true"></a></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true"></a></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Listen</span> <span class="ot">=</span> <span class="dt">Listen</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true"></a>    {<span class="ot"> host ::</span> <span class="dt">Maybe</span> <span class="dt">String</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true"></a>    ,<span class="ot"> port ::</span> <span class="dt">Word16</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true"></a>    }</span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true"></a>  <span class="kw">deriving</span> stock (<span class="dt">Generic</span>, <span class="dt">Show</span>)</span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true"></a>  <span class="kw">deriving</span> anyclass (<span class="dt">Dhall.FromDhall</span>)</span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true"></a></span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Database</span> <span class="ot">=</span> <span class="dt">Database</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true"></a>    {<span class="ot"> host ::</span> <span class="dt">String</span></span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true"></a>    ,<span class="ot"> port ::</span> <span class="dt">Word16</span></span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true"></a>    ,<span class="ot"> user ::</span> <span class="dt">String</span></span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true"></a>    ,<span class="ot"> password ::</span> <span class="dt">String</span></span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true"></a>    }</span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true"></a>  <span class="kw">deriving</span> stock (<span class="dt">Generic</span>, <span class="dt">Show</span>)</span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true"></a>  <span class="kw">deriving</span> anyclass (<span class="dt">Dhall.FromDhall</span>)</span>
+<span id="cb8-47"><a href="#cb8-47" aria-hidden="true"></a></span>
+<span id="cb8-48"><a href="#cb8-48" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Config</span> <span class="ot">=</span> <span class="dt">Config</span></span>
+<span id="cb8-49"><a href="#cb8-49" aria-hidden="true"></a>    {<span class="ot"> api ::</span> <span class="dt">Listen</span></span>
+<span id="cb8-50"><a href="#cb8-50" aria-hidden="true"></a>    ,<span class="ot"> healthApi ::</span> <span class="dt">Listen</span></span>
+<span id="cb8-51"><a href="#cb8-51" aria-hidden="true"></a>    ,<span class="ot"> database ::</span> <span class="dt">Database</span></span>
+<span id="cb8-52"><a href="#cb8-52" aria-hidden="true"></a>    }</span>
+<span id="cb8-53"><a href="#cb8-53" aria-hidden="true"></a>  <span class="kw">deriving</span> stock (<span class="dt">Generic</span>, <span class="dt">Show</span>)</span>
+<span id="cb8-54"><a href="#cb8-54" aria-hidden="true"></a>  <span class="kw">deriving</span> anyclass (<span class="dt">Dhall.FromDhall</span>)</span>
+<span id="cb8-55"><a href="#cb8-55" aria-hidden="true"></a></span>
+<span id="cb8-56"><a href="#cb8-56" aria-hidden="true"></a><span class="co">-- | Main entry point. Responsible for parsing command-line options and reading</span></span>
+<span id="cb8-57"><a href="#cb8-57" aria-hidden="true"></a><span class="co">-- environment variables to get configuration and then run the 'service'</span></span>
+<span id="cb8-58"><a href="#cb8-58" aria-hidden="true"></a><span class="co">-- itself.</span></span>
+<span id="cb8-59"><a href="#cb8-59" aria-hidden="true"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb8-60"><a href="#cb8-60" aria-hidden="true"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb8-61"><a href="#cb8-61" aria-hidden="true"></a>    config <span class="ot">&lt;-</span> getConfiguration Dhall.auto</span>
+<span id="cb8-62"><a href="#cb8-62" aria-hidden="true"></a>        ( Options.fullDesc</span>
+<span id="cb8-63"><a href="#cb8-63" aria-hidden="true"></a>        <span class="op">&lt;&gt;</span> Options.header <span class="st">&quot;Very useful info those that call the '--help'.&quot;</span></span>
+<span id="cb8-64"><a href="#cb8-64" aria-hidden="true"></a>        )</span>
+<span id="cb8-65"><a href="#cb8-65" aria-hidden="true"></a></span>
+<span id="cb8-66"><a href="#cb8-66" aria-hidden="true"></a>    service config</span>
+<span id="cb8-67"><a href="#cb8-67" aria-hidden="true"></a></span>
+<span id="cb8-68"><a href="#cb8-68" aria-hidden="true"></a><span class="co">-- | The serice code itself.</span></span>
+<span id="cb8-69"><a href="#cb8-69" aria-hidden="true"></a><span class="ot">service ::</span> <span class="dt">Config</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb8-70"><a href="#cb8-70" aria-hidden="true"></a>service <span class="ot">=</span> <span class="co">{- ... -}</span></span></code></pre></div>
+<p>Now the implementation of <code>getConfiguration</code> that allows us to be so brief in the <code>Main</code> module:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode code-block haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="ot">{-# LANGUAGE LambdaCase #-}</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a><span class="ot">{-# LANGUAGE NamedFieldPuns #-}</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true"></a><span class="ot">{-# LANGUAGE NoImplicitPrelude #-}</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true"></a><span class="ot">{-# LANGUAGE RankNTypes #-}</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true"></a><span class="ot">{-# LANGUAGE RecordWildCards #-}</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true"></a><span class="ot">{-# LANGUAGE ScopedTypeVariables #-}</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true"></a><span class="co">-- |</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true"></a><span class="co">-- Description: An example of Dhall-centric access to configuration</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true"></a><span class="co">-- Copyright:   (c) 2020 Peter Trško</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true"></a><span class="co">-- License:     BSD3</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true"></a><span class="co">--</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true"></a><span class="co">-- An example of Dhall-centric access to configuration which is passed using</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true"></a><span class="co">-- command-line options or an environment variable. In addition to that we</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true"></a><span class="co">-- leverage Dhall-specific features like typechecking to provide the ability to</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true"></a><span class="co">-- test configuration before running the service.</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">Configuration</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true"></a>    ( getConfiguration</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true"></a>    )</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true"></a></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Control.Applicative</span> ((&lt;**&gt;), (&lt;*&gt;), (&lt;|&gt;), optional, pure)</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Control.Exception</span> (throwIO)</span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Control.Monad</span> ((&gt;&gt;=))</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Function</span> ((.))</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Maybe</span> (<span class="dt">Maybe</span>(<span class="dt">Just</span>, <span class="dt">Nothing</span>), maybe)</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Semigroup</span> ((&lt;&gt;))</span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.String</span> (fromString)</span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">System.Environment</span> (lookupEnv)</span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">System.Exit</span> (die, exitSuccess)</span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">System.IO</span> (<span class="dt">IO</span>)</span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true"></a></span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Either.Validation</span> <span class="kw">as</span> <span class="dt">Validation</span></span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true"></a>    ( <span class="dt">Validation</span>(<span class="dt">Failure</span>, <span class="dt">Success</span>)</span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true"></a>    )</span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Text</span> (<span class="dt">Text</span>)</span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Dhall</span></span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true"></a>    ( <span class="dt">Decoder</span>(<span class="dt">Decoder</span>, expected)</span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true"></a>    , input</span>
+<span id="cb9-39"><a href="#cb9-39" aria-hidden="true"></a>    )</span>
+<span id="cb9-40"><a href="#cb9-40" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Options.Applicative</span> <span class="kw">as</span> <span class="dt">Options</span></span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true"></a>    ( <span class="dt">InfoMod</span></span>
+<span id="cb9-42"><a href="#cb9-42" aria-hidden="true"></a>    , <span class="dt">Parser</span></span>
+<span id="cb9-43"><a href="#cb9-43" aria-hidden="true"></a>    , execParser</span>
+<span id="cb9-44"><a href="#cb9-44" aria-hidden="true"></a>    , flag</span>
+<span id="cb9-45"><a href="#cb9-45" aria-hidden="true"></a>    , flag'</span>
+<span id="cb9-46"><a href="#cb9-46" aria-hidden="true"></a>    , help</span>
+<span id="cb9-47"><a href="#cb9-47" aria-hidden="true"></a>    , helper</span>
+<span id="cb9-48"><a href="#cb9-48" aria-hidden="true"></a>    , info</span>
+<span id="cb9-49"><a href="#cb9-49" aria-hidden="true"></a>    , long</span>
+<span id="cb9-50"><a href="#cb9-50" aria-hidden="true"></a>    , metavar</span>
+<span id="cb9-51"><a href="#cb9-51" aria-hidden="true"></a>    , strOption</span>
+<span id="cb9-52"><a href="#cb9-52" aria-hidden="true"></a>    )</span>
+<span id="cb9-53"><a href="#cb9-53" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Prettyprinter</span> (line, pretty)</span>
+<span id="cb9-54"><a href="#cb9-54" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Prettyprinter.Render.Text</span> <span class="kw">as</span> <span class="dt">Prettyprinter</span> (putDoc)</span>
+<span id="cb9-55"><a href="#cb9-55" aria-hidden="true"></a></span>
+<span id="cb9-56"><a href="#cb9-56" aria-hidden="true"></a></span>
+<span id="cb9-57"><a href="#cb9-57" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Mode</span></span>
+<span id="cb9-58"><a href="#cb9-58" aria-hidden="true"></a>    <span class="ot">=</span> <span class="dt">Execute</span> (<span class="dt">Maybe</span> <span class="dt">Text</span>)</span>
+<span id="cb9-59"><a href="#cb9-59" aria-hidden="true"></a>    <span class="co">-- ^ We want to execute the application with the given configuration. If</span></span>
+<span id="cb9-60"><a href="#cb9-60" aria-hidden="true"></a>    <span class="co">-- the configuration is 'Nothing' we need to read the environment variable.</span></span>
+<span id="cb9-61"><a href="#cb9-61" aria-hidden="true"></a>    <span class="op">|</span> <span class="dt">Typecheck</span> (<span class="dt">Maybe</span> <span class="dt">Text</span>)</span>
+<span id="cb9-62"><a href="#cb9-62" aria-hidden="true"></a>    <span class="co">-- ^ We want to do a dry-run during which we only typecheck the</span></span>
+<span id="cb9-63"><a href="#cb9-63" aria-hidden="true"></a>    <span class="co">-- configuration. If the configuration is 'Nothing' we need to read the</span></span>
+<span id="cb9-64"><a href="#cb9-64" aria-hidden="true"></a>    <span class="co">-- environment variable.</span></span>
+<span id="cb9-65"><a href="#cb9-65" aria-hidden="true"></a>    <span class="op">|</span> <span class="dt">PrintType</span></span>
+<span id="cb9-66"><a href="#cb9-66" aria-hidden="true"></a>    <span class="co">-- ^ Instead of doing anything just print the type of the configuration the</span></span>
+<span id="cb9-67"><a href="#cb9-67" aria-hidden="true"></a>    <span class="co">-- application expects to be given.</span></span>
+<span id="cb9-68"><a href="#cb9-68" aria-hidden="true"></a></span>
+<span id="cb9-69"><a href="#cb9-69" aria-hidden="true"></a>getConfiguration</span>
+<span id="cb9-70"><a href="#cb9-70" aria-hidden="true"></a><span class="ot">    ::</span> <span class="kw">forall</span> config</span>
+<span id="cb9-71"><a href="#cb9-71" aria-hidden="true"></a>    <span class="op">.</span>  <span class="dt">Dhall.Decoder</span> config</span>
+<span id="cb9-72"><a href="#cb9-72" aria-hidden="true"></a>    <span class="co">-- ^ Dhall 'Dhall.Decoder' consists of parser and expected type. Dhall</span></span>
+<span id="cb9-73"><a href="#cb9-73" aria-hidden="true"></a>    <span class="co">-- library provides one special 'Dhall.Decoder':</span></span>
+<span id="cb9-74"><a href="#cb9-74" aria-hidden="true"></a>    <span class="co">--</span></span>
+<span id="cb9-75"><a href="#cb9-75" aria-hidden="true"></a>    <span class="co">-- @</span></span>
+<span id="cb9-76"><a href="#cb9-76" aria-hidden="true"></a>    <span class="co">-- 'Dhall.auto' :: 'Dhall.FromDhall' a =&gt; 'Dhall.Decoder' a</span></span>
+<span id="cb9-77"><a href="#cb9-77" aria-hidden="true"></a>    <span class="co">-- @</span></span>
+<span id="cb9-78"><a href="#cb9-78" aria-hidden="true"></a>    <span class="co">--</span></span>
+<span id="cb9-79"><a href="#cb9-79" aria-hidden="true"></a>    <span class="co">-- Which allows us to use type class mechanism for deriving and combining</span></span>
+<span id="cb9-80"><a href="#cb9-80" aria-hidden="true"></a>    <span class="co">-- parsers and is a good default in many cases.</span></span>
+<span id="cb9-81"><a href="#cb9-81" aria-hidden="true"></a>    <span class="ot">-&gt;</span> (<span class="kw">forall</span> a<span class="op">.</span> <span class="dt">Options.InfoMod</span> a)</span>
+<span id="cb9-82"><a href="#cb9-82" aria-hidden="true"></a>    <span class="co">-- ^ Allows options parser configuration including help message information</span></span>
+<span id="cb9-83"><a href="#cb9-83" aria-hidden="true"></a>    <span class="co">-- and general parser behaviour. Reason for rank-2 type is that we don't</span></span>
+<span id="cb9-84"><a href="#cb9-84" aria-hidden="true"></a>    <span class="co">-- want to expose the unnecessary internals of the parser we are using.</span></span>
+<span id="cb9-85"><a href="#cb9-85" aria-hidden="true"></a>    <span class="ot">-&gt;</span> <span class="dt">IO</span> config</span>
+<span id="cb9-86"><a href="#cb9-86" aria-hidden="true"></a>getConfiguration decoder<span class="op">@</span><span class="dt">Dhall.Decoder</span>{expected} infoMod <span class="ot">=</span></span>
+<span id="cb9-87"><a href="#cb9-87" aria-hidden="true"></a>    parseOptions <span class="op">&gt;&gt;=</span> \<span class="kw">case</span></span>
+<span id="cb9-88"><a href="#cb9-88" aria-hidden="true"></a>        <span class="dt">Execute</span> config <span class="ot">-&gt;</span></span>
+<span id="cb9-89"><a href="#cb9-89" aria-hidden="true"></a>            parseConfig config</span>
+<span id="cb9-90"><a href="#cb9-90" aria-hidden="true"></a></span>
+<span id="cb9-91"><a href="#cb9-91" aria-hidden="true"></a>        <span class="dt">Typecheck</span> config <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb9-92"><a href="#cb9-92" aria-hidden="true"></a>            _ <span class="ot">&lt;-</span> parseConfig config</span>
+<span id="cb9-93"><a href="#cb9-93" aria-hidden="true"></a>            exitSuccess</span>
+<span id="cb9-94"><a href="#cb9-94" aria-hidden="true"></a></span>
+<span id="cb9-95"><a href="#cb9-95" aria-hidden="true"></a>        <span class="dt">PrintType</span> <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb9-96"><a href="#cb9-96" aria-hidden="true"></a>            printType</span>
+<span id="cb9-97"><a href="#cb9-97" aria-hidden="true"></a>            exitSuccess</span>
+<span id="cb9-98"><a href="#cb9-98" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb9-99"><a href="#cb9-99" aria-hidden="true"></a><span class="ot">    parseConfig ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> config</span>
+<span id="cb9-100"><a href="#cb9-100" aria-hidden="true"></a>    parseConfig possiblyExpr <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb9-101"><a href="#cb9-101" aria-hidden="true"></a>        expr <span class="ot">&lt;-</span> <span class="kw">case</span> possiblyExpr <span class="kw">of</span></span>
+<span id="cb9-102"><a href="#cb9-102" aria-hidden="true"></a>            <span class="dt">Just</span> expr <span class="ot">-&gt;</span></span>
+<span id="cb9-103"><a href="#cb9-103" aria-hidden="true"></a>                <span class="fu">pure</span> expr</span>
+<span id="cb9-104"><a href="#cb9-104" aria-hidden="true"></a></span>
+<span id="cb9-105"><a href="#cb9-105" aria-hidden="true"></a>            <span class="dt">Nothing</span> <span class="ot">-&gt;</span></span>
+<span id="cb9-106"><a href="#cb9-106" aria-hidden="true"></a>                lookupEnv <span class="st">&quot;CONFIG&quot;</span> <span class="op">&gt;&gt;=</span> <span class="fu">maybe</span> dieNoConfig (<span class="fu">pure</span> <span class="op">.</span> fromString)</span>
+<span id="cb9-107"><a href="#cb9-107" aria-hidden="true"></a></span>
+<span id="cb9-108"><a href="#cb9-108" aria-hidden="true"></a>        Dhall.input decoder expr</span>
+<span id="cb9-109"><a href="#cb9-109" aria-hidden="true"></a></span>
+<span id="cb9-110"><a href="#cb9-110" aria-hidden="true"></a><span class="ot">    printType ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb9-111"><a href="#cb9-111" aria-hidden="true"></a>    printType <span class="ot">=</span> <span class="kw">case</span> expected <span class="kw">of</span></span>
+<span id="cb9-112"><a href="#cb9-112" aria-hidden="true"></a>        <span class="dt">Validation.Success</span> expr <span class="ot">-&gt;</span></span>
+<span id="cb9-113"><a href="#cb9-113" aria-hidden="true"></a>            Prettyprinter.putDoc</span>
+<span id="cb9-114"><a href="#cb9-114" aria-hidden="true"></a>                ( Prettyprinter.pretty expr</span>
+<span id="cb9-115"><a href="#cb9-115" aria-hidden="true"></a>                <span class="op">&lt;&gt;</span> Prettyprinter.line</span>
+<span id="cb9-116"><a href="#cb9-116" aria-hidden="true"></a>                )</span>
+<span id="cb9-117"><a href="#cb9-117" aria-hidden="true"></a></span>
+<span id="cb9-118"><a href="#cb9-118" aria-hidden="true"></a>        <span class="dt">Validation.Failure</span> err <span class="ot">-&gt;</span></span>
+<span id="cb9-119"><a href="#cb9-119" aria-hidden="true"></a>            <span class="co">-- This indicates a bug in the Decoder.</span></span>
+<span id="cb9-120"><a href="#cb9-120" aria-hidden="true"></a>            throwIO err</span>
+<span id="cb9-121"><a href="#cb9-121" aria-hidden="true"></a></span>
+<span id="cb9-122"><a href="#cb9-122" aria-hidden="true"></a><span class="ot">    dieNoConfig ::</span> <span class="dt">IO</span> a</span>
+<span id="cb9-123"><a href="#cb9-123" aria-hidden="true"></a>    dieNoConfig <span class="ot">=</span></span>
+<span id="cb9-124"><a href="#cb9-124" aria-hidden="true"></a>        die <span class="st">&quot;Either `CONFIG=EXPR' environment variable or `--config=EXPR'\</span></span>
+<span id="cb9-125"><a href="#cb9-125" aria-hidden="true"></a><span class="st">            \ command-line option must be specified&quot;</span></span>
+<span id="cb9-126"><a href="#cb9-126" aria-hidden="true"></a></span>
+<span id="cb9-127"><a href="#cb9-127" aria-hidden="true"></a><span class="ot">    parseOptions ::</span> <span class="dt">IO</span> <span class="dt">Mode</span></span>
+<span id="cb9-128"><a href="#cb9-128" aria-hidden="true"></a>    parseOptions <span class="ot">=</span></span>
+<span id="cb9-129"><a href="#cb9-129" aria-hidden="true"></a>        Options.execParser (Options.info (options <span class="op">&lt;**&gt;</span> Options.helper) infoMod)</span>
+<span id="cb9-130"><a href="#cb9-130" aria-hidden="true"></a></span>
+<span id="cb9-131"><a href="#cb9-131" aria-hidden="true"></a><span class="ot">    options ::</span> <span class="dt">Options.Parser</span> <span class="dt">Mode</span></span>
+<span id="cb9-132"><a href="#cb9-132" aria-hidden="true"></a>    options <span class="ot">=</span> printTypeFlag <span class="op">&lt;|&gt;</span> (typecheckFlag <span class="op">&lt;*&gt;</span> optional configOption)</span>
+<span id="cb9-133"><a href="#cb9-133" aria-hidden="true"></a></span>
+<span id="cb9-134"><a href="#cb9-134" aria-hidden="true"></a><span class="ot">    configOption ::</span> <span class="dt">Options.Parser</span> <span class="dt">Text</span></span>
+<span id="cb9-135"><a href="#cb9-135" aria-hidden="true"></a>    configOption <span class="ot">=</span> Options.strOption</span>
+<span id="cb9-136"><a href="#cb9-136" aria-hidden="true"></a>        ( Options.long <span class="st">&quot;config&quot;</span></span>
+<span id="cb9-137"><a href="#cb9-137" aria-hidden="true"></a>        <span class="op">&lt;&gt;</span> Options.metavar <span class="st">&quot;EXPR&quot;</span></span>
+<span id="cb9-138"><a href="#cb9-138" aria-hidden="true"></a>        <span class="op">&lt;&gt;</span> Options.help <span class="st">&quot;Set configration to EXPR, where EXPR is a Dhall\</span></span>
+<span id="cb9-139"><a href="#cb9-139" aria-hidden="true"></a><span class="st">            \ expression; if application fails to parse or typecheck the EXPR\</span></span>
+<span id="cb9-140"><a href="#cb9-140" aria-hidden="true"></a><span class="st">            \ it terminates with exit code 1&quot;</span></span>
+<span id="cb9-141"><a href="#cb9-141" aria-hidden="true"></a>        )</span>
+<span id="cb9-142"><a href="#cb9-142" aria-hidden="true"></a></span>
+<span id="cb9-143"><a href="#cb9-143" aria-hidden="true"></a><span class="ot">    typecheckFlag ::</span> <span class="dt">Options.Parser</span> (<span class="dt">Maybe</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Mode</span>)</span>
+<span id="cb9-144"><a href="#cb9-144" aria-hidden="true"></a>    typecheckFlag <span class="ot">=</span> Options.flag <span class="dt">Execute</span> <span class="dt">Typecheck</span></span>
+<span id="cb9-145"><a href="#cb9-145" aria-hidden="true"></a>        ( Options.long <span class="st">&quot;typecheck&quot;</span></span>
+<span id="cb9-146"><a href="#cb9-146" aria-hidden="true"></a>        <span class="op">&lt;&gt;</span> Options.help <span class="st">&quot;Typecheck the configuration and exit; exit code 0 is\</span></span>
+<span id="cb9-147"><a href="#cb9-147" aria-hidden="true"></a><span class="st">            \ used on success and exit code 1 on failure to typecheck&quot;</span></span>
+<span id="cb9-148"><a href="#cb9-148" aria-hidden="true"></a>        )</span>
+<span id="cb9-149"><a href="#cb9-149" aria-hidden="true"></a></span>
+<span id="cb9-150"><a href="#cb9-150" aria-hidden="true"></a><span class="ot">    printTypeFlag ::</span> <span class="dt">Options.Parser</span> <span class="dt">Mode</span></span>
+<span id="cb9-151"><a href="#cb9-151" aria-hidden="true"></a>    printTypeFlag <span class="ot">=</span> Options.flag' <span class="dt">PrintType</span></span>
+<span id="cb9-152"><a href="#cb9-152" aria-hidden="true"></a>        ( Options.long <span class="st">&quot;print-config-type&quot;</span></span>
+<span id="cb9-153"><a href="#cb9-153" aria-hidden="true"></a>        <span class="op">&lt;&gt;</span> Options.help <span class="st">&quot;Print Dhall type of configuration accepted by the\</span></span>
+<span id="cb9-154"><a href="#cb9-154" aria-hidden="true"></a><span class="st">            \ application&quot;</span></span>
+<span id="cb9-155"><a href="#cb9-155" aria-hidden="true"></a>        )</span></code></pre></div>
+<p>The above code was tested and built with:</p>
+<ul>
+<li><p>GHC 8.8.4</p></li>
+<li><p><a href="https://www.stackage.org/lts-16.17">Stackage LTS 16.17</a> with following exceptions:</p>
+<ul>
+<li><a href="https://hackage.haskell.org/package/prettyprinter-1.7.0">prettyprinter-1.7.0</a></li>
+<li><a href="https://hackage.haskell.org/package/dhall-1.35.0">dhall-1.35.0</a></li>
+<li><a href="https://hackage.haskell.org/package/repline-0.4.0.0">repline-0.4.0.0</a></li>
+<li><a href="https://hackage.haskell.org/package/haskeline-0.8.1.0">haskeline-0.8.1.0</a></li>
+</ul></li>
+</ul>
+<p>If we compile the above code (with some sensible definition for <code>service</code>) and name it <code>example-service</code> then we get following help message:</p>
+<pre class="code-block"><code>Very useful info those that call the '--help'.
+
+Usage: example-service [--print-config-type | [--typecheck] [--config EXPR]]
+
+Available options:
+  --print-config-type      Print Dhall type of configuration accepted by the
+                           application
+  --typecheck              Typecheck the configuration and exit; exit code 0 is
+                           used on success and exit code 1 on failure to
+                           typecheck
+  --config EXPR            Set configration to EXPR, where EXPR is a Dhall
+                           expression; if application fails to parse or
+                           typecheck the EXPR it terminates with exit code 1
+  -h,--help                Show this help text</code></pre>
+<p>If we don’t supply a configuration we get:</p>
+<pre class="code-block"><code>Either `CONFIG=EXPR' environment variable or `--config=EXPR' command-line
+option must be specified</code></pre>
+<p>And when we supply an incorrect configuration we get a pretty good idea what’s going on:</p>
+<pre class="code-block"><code>$ ./example-service --config='{=}'
+example-service:
+Error: Expression doesn't match annotation
+
+{ - api : …
+, - database : …
+, - healthApi : …
+}
+
+1│ {=} : { api : { host : Optional Text, port : Natural }
+2│ , healthApi : { host : Optional Text, port : Natural }
+3│ , database : { host : Text, port : Natural, user : Text, password : Text }
+4│ }
+
+(input):1:1</code></pre>
+
+        </article>
+
+        <footer>
+            Generated by <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </footer>
+    </body>
+
+    <script src="../js/copy-code.js"></script>
+    <script src="../js/heading-anchors.js"></script>
+</html>
