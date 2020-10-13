@@ -20,24 +20,25 @@
             </nav>
         </header>
 
-        <article>
-            <h1>Shebang nix-shell</h1>
+        <main id="content">
+            <article>
+                <h1>Shebang nix-shell</h1>
 
-            <div class="info">
+                <div class="info">
     Posted on 05 December 2019
     
 </div>
 
-<p>Using <code>nix-shell</code> this way allows us to create scripts that describe their own dependencies.</p>
+<p>Using <code class="sourceCode bash"><span class="ex">nix-shell</span></code> this way allows us to create scripts that describe their own dependencies.</p>
 <h1 id="usage">Usage</h1>
 <p>Basic usage:</p>
-<pre class="code-block"><code>#!/usr/bin/env nix-shell
+<pre class="code-block usage" data-lang="usage"><code>#!/usr/bin/env nix-shell
 #!nix-shell [OPTIONS] -i INTERPRETER [--packages PACKAGES|-p PACKAGES|PATH]
 [#!nix-shell OPTIONS]</code></pre>
-<p>As shown above line <code>#!nix-shell</code> can be repeated. These lines are parsed by <code>nix-shell</code> itself, which differs slightly from how shell would parse them. For example <strong>single quotes do not work</strong>, and double quotes must be used when e.g. specifying Nix expression.</p>
+<p>As shown above line <code class="sourceCode bash"><span class="co">#!nix-shell</span></code> can be repeated. These lines are parsed by <code class="sourceCode bash"><span class="ex">nix-shell</span></code> itself, which differs slightly from how shell would parse them. For example <strong>single quotes do not work</strong>, and double quotes must be used when e.g. specifying Nix expression.</p>
 <p>Somewhat useful documentation can be found in <a href="https://nixos.org/nix/manual/#sec-nix-shell"><code>nix-shell(1)</code></a> manual page.</p>
 <h1 id="bash-script">Bash Script</h1>
-<div class="sourceCode" id="cb2"><pre class="sourceCode code-block bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="co">#!/usr/bin/env nix-shell</span></span>
+<div class="sourceCode" id="cb2" data-lang="bash"><pre class="sourceCode code-block bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="co">#!/usr/bin/env nix-shell</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="co">#!nix-shell -i bash -p curl</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a><span class="co"># shellcheck shell=bash</span></span>
@@ -50,7 +51,7 @@
 <span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a></span>
 <span id="cb2-12"><a href="#cb2-12" aria-hidden="true"></a><span class="ex">main</span> <span class="st">&quot;</span><span class="va">$@</span><span class="st">&quot;</span></span></code></pre></div>
 <h1 id="haskell-shakefile">Haskell (Shakefile)</h1>
-<div class="sourceCode" id="cb3"><pre class="sourceCode code-block haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="pp">#!/usr/bin/env nix-shell</span></span>
+<div class="sourceCode" id="cb3" data-lang="haskell"><pre class="sourceCode code-block haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="pp">#!/usr/bin/env nix-shell</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="pp">#!nix-shell -i runghc</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a><span class="pp">#!nix-shell -p &quot;haskellPackages.ghcWithPackages (pkgs: with pkgs; [ directory executable-path shake ])&quot;</span></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a></span>
@@ -59,43 +60,52 @@
 <span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a></span>
 <span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a><span class="ot">{-# OPTIONS_GHC -Wall -Wcompat #-}</span></span>
 <span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a></span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">Main</span> (main)</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a>  <span class="kw">where</span></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true"></a></span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Development.Shake</span></span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true"></a></span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true"></a></span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true"></a>    opts<span class="op">@</span><span class="dt">Options</span>{<span class="op">..</span>} <span class="ot">&lt;-</span> getOptions</span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true"></a>    shakeMain opts shakeOptions</span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true"></a>        { shakeColor <span class="ot">=</span> <span class="dt">True</span></span>
-<span id="cb3-21"><a href="#cb3-21" aria-hidden="true"></a><span class="co">--      , shakeFiles = ...</span></span>
-<span id="cb3-22"><a href="#cb3-22" aria-hidden="true"></a><span class="co">--      , shakeVersion = ...</span></span>
-<span id="cb3-23"><a href="#cb3-23" aria-hidden="true"></a><span class="co">--      , shakeChange = ChangeDigest</span></span>
-<span id="cb3-24"><a href="#cb3-24" aria-hidden="true"></a><span class="co">--      , shakeExtra = ...</span></span>
-<span id="cb3-25"><a href="#cb3-25" aria-hidden="true"></a>        }</span>
-<span id="cb3-26"><a href="#cb3-26" aria-hidden="true"></a></span>
-<span id="cb3-27"><a href="#cb3-27" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Options</span> <span class="ot">=</span> <span class="dt">Options</span></span>
-<span id="cb3-28"><a href="#cb3-28" aria-hidden="true"></a>    {<span class="ot"> shakeOptions ::</span> <span class="dt">ShakeOptions</span></span>
-<span id="cb3-29"><a href="#cb3-29" aria-hidden="true"></a><span class="co">--  , ...</span></span>
-<span id="cb3-30"><a href="#cb3-30" aria-hidden="true"></a>    }</span>
-<span id="cb3-31"><a href="#cb3-31" aria-hidden="true"></a></span>
-<span id="cb3-32"><a href="#cb3-32" aria-hidden="true"></a><span class="co">-- | Figure some things that don't need to be tracked by Shake.</span></span>
-<span id="cb3-33"><a href="#cb3-33" aria-hidden="true"></a><span class="ot">getOptions ::</span> <span class="dt">IO</span> <span class="dt">Options</span></span>
-<span id="cb3-34"><a href="#cb3-34" aria-hidden="true"></a>getOptions <span class="ot">=</span> <span class="fu">undefined</span>  <span class="co">-- TODO</span></span>
-<span id="cb3-35"><a href="#cb3-35" aria-hidden="true"></a></span>
-<span id="cb3-36"><a href="#cb3-36" aria-hidden="true"></a><span class="ot">shakeMain ::</span> <span class="dt">ShakeOptions</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
-<span id="cb3-37"><a href="#cb3-37" aria-hidden="true"></a>shakeMain <span class="ot">=</span> shareArgs opts <span class="kw">do</span></span>
-<span id="cb3-38"><a href="#cb3-38" aria-hidden="true"></a>    <span class="op">...</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a><span class="co">-- |</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a><span class="co">-- Description: An example of Shake-based build system using nix-shell</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true"></a><span class="co">-- Copyright:   (c) 2019 Peter Trško</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true"></a><span class="co">-- License:     BSD3</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true"></a><span class="co">--</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true"></a><span class="co">-- An example of Shake-based build system using @nix-shell@ to provide all</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true"></a><span class="co">-- dependencies needed by the buildsystem itself. This generalises to any</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true"></a><span class="co">-- Haskell binary.</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">Main</span> (main)</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true"></a></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Development.Shake</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true"></a></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true"></a></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true"></a>    opts<span class="op">@</span><span class="dt">Options</span>{<span class="op">..</span>} <span class="ot">&lt;-</span> getOptions</span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true"></a>    shakeMain opts shakeOptions</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true"></a>        { shakeColor <span class="ot">=</span> <span class="dt">True</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true"></a><span class="co">--      , shakeFiles = ...</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true"></a><span class="co">--      , shakeVersion = ...</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true"></a><span class="co">--      , shakeChange = ChangeDigest</span></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true"></a><span class="co">--      , shakeExtra = ...</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true"></a>        }</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true"></a></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">Options</span> <span class="ot">=</span> <span class="dt">Options</span></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true"></a>    {<span class="ot"> shakeOptions ::</span> <span class="dt">ShakeOptions</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true"></a><span class="co">--  , ...</span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true"></a>    }</span>
 <span id="cb3-39"><a href="#cb3-39" aria-hidden="true"></a></span>
-<span id="cb3-40"><a href="#cb3-40" aria-hidden="true"></a>    want</span>
-<span id="cb3-41"><a href="#cb3-41" aria-hidden="true"></a>        [ <span class="op">...</span></span>
-<span id="cb3-42"><a href="#cb3-42" aria-hidden="true"></a>        ]</span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true"></a><span class="co">-- | Figure out some things that don't need to be tracked by Shake.</span></span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true"></a><span class="ot">getOptions ::</span> <span class="dt">IO</span> <span class="dt">Options</span></span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true"></a>getOptions <span class="ot">=</span> <span class="fu">undefined</span>  <span class="co">-- TODO</span></span>
 <span id="cb3-43"><a href="#cb3-43" aria-hidden="true"></a></span>
-<span id="cb3-44"><a href="#cb3-44" aria-hidden="true"></a>    <span class="op">...</span></span></code></pre></div>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true"></a><span class="ot">shakeMain ::</span> <span class="dt">ShakeOptions</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true"></a>shakeMain <span class="ot">=</span> shareArgs opts <span class="kw">do</span></span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true"></a>    <span class="op">...</span></span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true"></a></span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true"></a>    want</span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true"></a>        [ <span class="op">...</span></span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true"></a>        ]</span>
+<span id="cb3-51"><a href="#cb3-51" aria-hidden="true"></a></span>
+<span id="cb3-52"><a href="#cb3-52" aria-hidden="true"></a>    <span class="op">...</span></span></code></pre></div>
 
-        </article>
+            </article>
+        </main>
 
         <footer>
             Generated by <a href="http://jaspervdj.be/hakyll">Hakyll</a>

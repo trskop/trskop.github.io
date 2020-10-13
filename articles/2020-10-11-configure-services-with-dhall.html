@@ -20,10 +20,11 @@
             </nav>
         </header>
 
-        <article>
-            <h1>Configure services with Dhall</h1>
+        <main id="content">
+            <article>
+                <h1>Configure services with Dhall</h1>
 
-            <div class="info">
+                <div class="info">
     Posted on 11 October 2020
     
 </div>
@@ -46,14 +47,14 @@
 </ul>
 <h1 id="minimalistic-command-line-contract">Minimalistic Command-line Contract</h1>
 <p>While there are myriad of way this can be defined, the simplest of them that can be easily used with containers is just providing <code>CONFIG</code> environment variable:</p>
-<pre class="code-block"><code>CONFIG=EXPR EXECUTABLE</code></pre>
+<pre class="code-block" data-lang="usage"><code>CONFIG=EXPR EXECUTABLE</code></pre>
 <p>While this is certainly useful, it doesn’t allow us to use the full power of Haskell and Dhall pairing. Instead, we’ll use the following command-line contract for our <code>EXECUTABLE</code>s:</p>
-<pre class="code-block"><code>[CONFIG=EXPR] EXECUTABLE [--config=EXPR] [--typecheck]
+<pre class="code-block" data-lang="usage"><code>[CONFIG=EXPR] EXECUTABLE [--config=EXPR] [--typecheck]
 EXECUTABLE --print-config-type</code></pre>
 <p>We have two ways of how we can pass the configuration value:</p>
 <ul>
-<li><p><code>CONFIG=EXPR</code> environment variable where the value is a Dhall expression. For example simple server may need this:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode code-block bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="bu">export</span> <span class="va">CONFIG=</span><span class="st">'</span></span>
+<li><p><code class="sourceCode bash"><span class="va">CONFIG=</span>EXPR</code> environment variable where the value is a Dhall expression. For example simple server may need this:</p>
+<div class="sourceCode" id="cb3" data-lang="bash"><pre class="sourceCode code-block bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="bu">export</span> <span class="va">CONFIG=</span><span class="st">'</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="st">  { api =</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a><span class="st">    { port = 8080</span></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a><span class="st">    , host = None Text</span></span>
@@ -63,20 +64,20 @@ EXECUTABLE --print-config-type</code></pre>
 <span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a><span class="st">    , host = None Text</span></span>
 <span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a><span class="st">    }</span></span>
 <span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a><span class="st">  }'</span></span></code></pre></div></li>
-<li><p><code>--config=EXPR</code> command line option. This is the same as passing it the configuration through environment variable, but it should be noted that if we allow server to support Dhall imports then following will work out of the box:</p>
+<li><p><code class="sourceCode bash"><span class="ex">--config</span>=EXPR</code> command line option. This is the same as passing it the configuration through environment variable, but it should be noted that if we allow server to support Dhall imports then following will work out of the box:</p>
 <ul>
-<li><p><code>--config=FILE</code> where <code>FILE</code> is an absolute file path or one starting with <code>./</code> or <code>~/</code>. This allows us to handle passing files out of the box without needing to handle it explicitly or to provide another option like <code>--config-file=FILE</code></p></li>
-<li><p><code>--config=env:ENV_VAR</code> where <code>ENV_VAR</code> is a name of an environment variable. This actually allows us to use different environment variable than <code>CONFIG</code> if the situation requires it.</p></li>
+<li><p><code class="sourceCode bash"><span class="ex">--config</span>=FILE</code> where <code>FILE</code> is an absolute file path or one starting with <code>./</code> or <code>~/</code>. This allows us to handle passing files out of the box without needing to handle it explicitly or to provide another option like <code>--config-file=FILE</code></p></li>
+<li><p><code class="sourceCode bash"><span class="ex">--config</span>=env:ENV_VAR</code> where <code>ENV_VAR</code> is a name of an environment variable. This actually allows us to use different environment variable than <code>CONFIG</code> if the situation requires it.</p></li>
 </ul></li>
 </ul>
 <p>In addition to that we have two additional configuration options:</p>
 <ul>
-<li><p><code>--typecheck</code> that allows us to run the <code>EXECUTABLE</code> in dry-run mode where we only parse and type-check the configuration.</p>
+<li><p><code class="sourceCode bash"><span class="ex">--typecheck</span></code> that allows us to run the <code>EXECUTABLE</code> in dry-run mode where we only parse and type-check the configuration.</p>
 <p>We can make this part of our build or deployment pipeline to verify that we hadn’t forgotten to update the configuration before we attempt to start the service/container.</p></li>
-<li><p><code>--print-config-type</code> is a very useful way of querying the <code>EXECUTABLE</code> it self to tell us what it’s configuration looks like. There’s nothing easier than running <code>EXECUTABLE --print-config-type</code>, saving it into a file, and then writing the config file based on it.</p></li>
+<li><p><code class="sourceCode bash"><span class="ex">--print-config-type</span></code> is a very useful way of querying the <code>EXECUTABLE</code> it self to tell us what it’s configuration looks like. There’s nothing easier than running <code>EXECUTABLE --print-config-type</code>, saving it into a file, and then writing the config file based on it.</p></li>
 </ul>
 <p>Something that should be noted about the following calling convention:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode code-block bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a>[<span class="va">CONFIG=</span>EXPR] <span class="ex">EXECUTABLE</span> [--config=EXPR] [--typecheck]</span></code></pre></div>
+<pre class="code-block" data-lang="usage"><code>[CONFIG=EXPR] EXECUTABLE [--config=EXPR] [--typecheck]</code></pre>
 <p>Is that at least either <code>CONFIG=EXPR</code> or <code>--config=EXPR</code> must be supplied when running the service. This is to avoid having defaults in our services. While it can be useful to start the service with test configuration, it can easily lead to production misconfiguration.</p>
 <p>Some related articles:</p>
 <ul>
@@ -91,7 +92,7 @@ EXECUTABLE --print-config-type</code></pre>
 <li><p>Configuration files — secrets are written into configuration files that are then volume mounted into the container for the service to access.</p></li>
 <li><p>Secrets API — service has to retrieve it itself through an API that’s usually some kind of key-value store with security of secrets in mind.</p>
 <p>This approach is not covered in this article, but it’s easy to change our configuration definition to use something like (example is hypothetical and is written in Dhall):</p>
-<pre class="code-block dhall"><code>let Secret = &lt; Value : Text | Reference : Text &gt;
+<pre class="code-block dhall" data-lang="dhall"><code>let Secret = &lt; Value : Text | Reference : Text &gt;
 
 in  { database =
       { host = &quot;database.example.com&quot;
@@ -114,7 +115,7 @@ in  { database =
 </ul>
 <h2 id="environment-variables">Environment Variables</h2>
 <p>Dhall supports imports in the form <code>env:ENV_VAR</code> where <code>ENV_VAR</code> is a name of an environment variable. What it allows us to do is:</p>
-<pre class="code-block dhall"><code>{ database =
+<pre class="code-block dhall" data-lang="dhall"><code>{ database =
   { host = &quot;database.example.com&quot;
   , port = 5432
   , user = env:DB_USER as Text
@@ -132,7 +133,7 @@ in  { database =
 </ul>
 <h2 id="configuration-files">Configuration Files</h2>
 <p>File paths are imports in Dhall the same way as <code>env:ENV_VAR</code> or an URL is. This allows us to easily use the same syntax to access files:</p>
-<pre class="code-block dhall"><code>{ database =
+<pre class="code-block dhall" data-lang="dhall"><code>{ database =
   { host = &quot;database.example.com&quot;
   , port = 5432
   , user = /config/db-user as Text
@@ -142,7 +143,7 @@ in  { database =
 , healthApi = { port = 8090, host = None Text }
 }</code></pre>
 <p>Where <code>/config/db-user</code> and <code>/config/db-passowrd</code> are files volume mounted into the container and they contain the secrets.</p>
-<p>The <code>env:ENV_VAR as Text</code> means that the value of <code>ENV_VAR</code> will be treated as is, instead of Dhall expression.</p>
+<p>The <code>/file/path as Text</code> means that the contents of <code>/file/path</code> will be imported as is, instead of Dhall expression.</p>
 <p>Some related articles:</p>
 <ul>
 <li><p><a href="https://docs.dhall-lang.org/references/Built-in-types.html#imports">Dhall - References - Built-in types, functions, and operators: Imports</a></p></li>
@@ -152,7 +153,7 @@ in  { database =
 <p>Here we will present an example implementation that uses the well known <a href="https://hackage.haskell.org/package/optparse-applicative"><code>optparse-applicative</code></a> library. However, this library doesn’t handle environment variables on it’s own and we’ll have to handle that part on ourselves.</p>
 <p>In the presented example we are being very explicit, which includes <code>NoImplicitPrelude</code> and usage of explicit import lists. This makes the imports section more verbose, but better for readability in an article. When reading the example it may be best to skip the module header and imports sections, at first, and go back to them later.</p>
 <p>The implementation is split into two modules <code>Main</code> and <code>Configuration</code>. We’ll start with the <code>Main</code> (Haskell entry point) to set the stage:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode code-block haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="ot">{-# LANGUAGE DeriveAnyClass #-}</span></span>
+<div class="sourceCode" id="cb8" data-lang="haskell"><pre class="sourceCode code-block haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="ot">{-# LANGUAGE DeriveAnyClass #-}</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a><span class="ot">{-# LANGUAGE DeriveGeneric #-}</span></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a><span class="ot">{-# LANGUAGE DerivingStrategies #-}</span></span>
 <span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a><span class="ot">{-# LANGUAGE DuplicateRecordFields #-}</span></span>
@@ -223,7 +224,7 @@ in  { database =
 <span id="cb8-69"><a href="#cb8-69" aria-hidden="true"></a><span class="ot">service ::</span> <span class="dt">Config</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
 <span id="cb8-70"><a href="#cb8-70" aria-hidden="true"></a>service <span class="ot">=</span> <span class="co">{- ... -}</span></span></code></pre></div>
 <p>Now the implementation of <code>getConfiguration</code> that allows us to be so brief in the <code>Main</code> module:</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode code-block haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="ot">{-# LANGUAGE LambdaCase #-}</span></span>
+<div class="sourceCode" id="cb9" data-lang="haskell"><pre class="sourceCode code-block haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="ot">{-# LANGUAGE LambdaCase #-}</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a><span class="ot">{-# LANGUAGE NamedFieldPuns #-}</span></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true"></a><span class="ot">{-# LANGUAGE NoImplicitPrelude #-}</span></span>
 <span id="cb9-4"><a href="#cb9-4" aria-hidden="true"></a><span class="ot">{-# LANGUAGE RankNTypes #-}</span></span>
@@ -390,7 +391,8 @@ in  { database =
 </ul></li>
 </ul>
 <p>If we compile the above code (with some sensible definition for <code>service</code>) and name it <code>example-service</code> then we get following help message:</p>
-<pre class="code-block"><code>Very useful info those that call the '--help'.
+<pre class="code-block" data-lang="console"><code>user@machine:~ $ ./example-service --help
+Very useful info those that call the '--help'.
 
 Usage: example-service [--print-config-type | [--typecheck] [--config EXPR]]
 
@@ -405,10 +407,11 @@ Available options:
                            typecheck the EXPR it terminates with exit code 1
   -h,--help                Show this help text</code></pre>
 <p>If we don’t supply a configuration we get:</p>
-<pre class="code-block"><code>Either `CONFIG=EXPR' environment variable or `--config=EXPR' command-line
+<pre class="code-block" data-lang="console"><code>user@machine:~ $ ./example-service
+Either `CONFIG=EXPR' environment variable or `--config=EXPR' command-line
 option must be specified</code></pre>
 <p>And when we supply an incorrect configuration we get a pretty good idea what’s going on:</p>
-<pre class="code-block"><code>$ ./example-service --config='{=}'
+<pre class="code-block" data-lang="console"><code>user@machine:~ $ ./example-service --config='{=}'
 example-service:
 Error: Expression doesn't match annotation
 
@@ -424,7 +427,8 @@ Error: Expression doesn't match annotation
 
 (input):1:1</code></pre>
 
-        </article>
+            </article>
+        </main>
 
         <footer>
             Generated by <a href="http://jaspervdj.be/hakyll">Hakyll</a>

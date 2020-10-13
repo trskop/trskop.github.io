@@ -20,17 +20,18 @@
             </nav>
         </header>
 
-        <article>
-            <h1>Life With XDG Base Directory Specification</h1>
+        <main id="content">
+            <article>
+                <h1>Life With XDG Base Directory Specification</h1>
 
-            <div class="info">
+                <div class="info">
     Posted on 19 April 2019
     
 </div>
 
-<p><a href="https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html">XDG Base Directory Specification</a> provides a lot of interesting directories that can be used to avoid clutter in one’s <code>$HOME</code>. Unfortunately, these directories can be overriden using environment variables. This is annoying to work with, unless one knows how they should be properly resolved. In here we will describe how they should be resolved in various languages.</p>
+<p><a href="https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html">XDG Base Directory Specification</a> provides a lot of interesting directories that can be used to avoid clutter in one’s <code>$HOME</code>. Unfortunately, these directories can be overridden using environment variables. This is annoying to work with, unless one knows how they should be properly resolved. In here we will describe how they should be resolved in various languages.</p>
 <h1 id="bash">Bash</h1>
-<div class="sourceCode" id="cb1"><pre class="sourceCode code-block bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="bu">readonly</span> <span class="va">config_dir=</span><span class="st">&quot;</span><span class="va">${XDG_CONFIG_HOME:-${HOME}</span>/.config<span class="va">}</span><span class="st">&quot;</span></span>
+<div class="sourceCode" id="cb1" data-lang="bash"><pre class="sourceCode code-block bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="bu">readonly</span> <span class="va">config_dir=</span><span class="st">&quot;</span><span class="va">${XDG_CONFIG_HOME:-${HOME}</span>/.config<span class="va">}</span><span class="st">&quot;</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="bu">readonly</span> <span class="va">data_dir=</span><span class="st">&quot;</span><span class="va">${XDG_DATA_HOME:-${HOME}</span>/.local/share<span class="va">}</span><span class="st">&quot;</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="bu">readonly</span> <span class="va">cache_dir=</span><span class="st">&quot;</span><span class="va">${XDG_CACHE_HOME:-${HOME}</span>/.cache<span class="va">}</span><span class="st">&quot;</span></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="bu">readonly</span> <span class="va">runtime_dir=</span><span class="st">&quot;</span><span class="va">${XDG_RUNTIME_DIR:-${TMPDIR:-</span>/tmp<span class="va">}}</span><span class="st">&quot;</span></span>
@@ -38,7 +39,7 @@
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a><span class="bu">readonly</span> <span class="va">data_dirs=</span><span class="st">&quot;</span><span class="va">${XDG_DATA_DIRS:-</span>/usr/local/share/:/usr/share/<span class="va">}</span><span class="st">&quot;</span></span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a><span class="bu">readonly</span> <span class="va">config_dirs=</span><span class="st">&quot;</span><span class="va">${XDG_CONFIG_DIRS:-</span>/etc/xdg<span class="va">}</span><span class="st">&quot;</span></span></code></pre></div>
 <h1 id="dhall">Dhall</h1>
-<pre class="code-block dhall"><code>let home = env:HOME as Text
+<pre class="code-block dhall" data-lang="dhall"><code>let home = env:HOME as Text
 let temp-dir = env:TMPDIR as Text ? &quot;/tmp&quot;
 
 in  { config-dir =
@@ -65,43 +66,51 @@ in  { config-dir =
 <li><a href="http://hackage.haskell.org/package/base"><code>base</code></a></li>
 <li><a href="http://hackage.haskell.org/package/directory"><code>directory</code></a> ≥ 1.3.2.0</li>
 </ul>
-<div class="sourceCode" id="cb3"><pre class="sourceCode code-block haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="ot">{-# LANGUAGE RecordWildCards #-}</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">XdgDirs</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>  <span class="kw">where</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Maybe</span> (fromMaybe)</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">System.Environment</span> (lookupEnv)</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">System.Directory</span></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a>    ( <span class="dt">XdgDirectory</span>(<span class="op">..</span>)</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a>    , <span class="dt">XdgDirectoryList</span>(<span class="op">..</span>)</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a>    , getXdgDirectory</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a>    , getXdgDirectoryList</span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true"></a>    )</span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true"></a></span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true"></a></span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">XdgDirs</span> <span class="ot">=</span> <span class="dt">XdgDirs</span></span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true"></a>    {<span class="ot"> configDir ::</span> <span class="dt">FilePath</span></span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true"></a>    ,<span class="ot"> dataDir ::</span> <span class="dt">FilePath</span></span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true"></a>    ,<span class="ot"> cacheDir ::</span> <span class="dt">FilePath</span></span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true"></a>    ,<span class="ot"> runtimeDir ::</span> <span class="dt">FilePath</span></span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true"></a>    ,<span class="ot"> dataDirs ::</span> [<span class="dt">FilePath</span>]</span>
-<span id="cb3-21"><a href="#cb3-21" aria-hidden="true"></a>    ,<span class="ot"> configDirs ::</span> [<span class="dt">FilePath</span>]</span>
-<span id="cb3-22"><a href="#cb3-22" aria-hidden="true"></a>    }</span>
-<span id="cb3-23"><a href="#cb3-23" aria-hidden="true"></a>  <span class="kw">deriving</span> (<span class="dt">Show</span>)</span>
-<span id="cb3-24"><a href="#cb3-24" aria-hidden="true"></a></span>
-<span id="cb3-25"><a href="#cb3-25" aria-hidden="true"></a><span class="ot">xdgDirs ::</span> <span class="dt">IO</span> <span class="dt">XdgDirs</span></span>
-<span id="cb3-26"><a href="#cb3-26" aria-hidden="true"></a>xdgDirs <span class="ot">=</span> <span class="dt">XdgDirs</span></span>
-<span id="cb3-27"><a href="#cb3-27" aria-hidden="true"></a>    <span class="op">&lt;$&gt;</span> getXdgDirectory <span class="dt">XdgConfig</span> <span class="st">&quot;&quot;</span></span>
-<span id="cb3-28"><a href="#cb3-28" aria-hidden="true"></a>    <span class="op">&lt;*&gt;</span> getXdgDirectory <span class="dt">XdgData</span> <span class="st">&quot;&quot;</span></span>
-<span id="cb3-29"><a href="#cb3-29" aria-hidden="true"></a>    <span class="op">&lt;*&gt;</span> getXdgDirectory <span class="dt">XdgCache</span> <span class="st">&quot;&quot;</span></span>
-<span id="cb3-30"><a href="#cb3-30" aria-hidden="true"></a>    <span class="op">&lt;*&gt;</span> getXdgRuntimeDirectory</span>
-<span id="cb3-31"><a href="#cb3-31" aria-hidden="true"></a>    <span class="op">&lt;*&gt;</span> getXdgDirectoryList <span class="dt">XdgDataDirs</span></span>
-<span id="cb3-32"><a href="#cb3-32" aria-hidden="true"></a>    <span class="op">&lt;*&gt;</span> getXdgDirectoryList <span class="dt">XdgConfigDirs</span></span>
-<span id="cb3-33"><a href="#cb3-33" aria-hidden="true"></a>  <span class="kw">where</span></span>
-<span id="cb3-34"><a href="#cb3-34" aria-hidden="true"></a>    getXdgRuntimeDirectory <span class="ot">=</span> fromMaybe <span class="st">&quot;/tmp&quot;</span></span>
-<span id="cb3-35"><a href="#cb3-35" aria-hidden="true"></a>        <span class="op">&lt;$&gt;</span> ( lookupEnv <span class="st">&quot;XDG_RUNTIME_DIR&quot;</span></span>
-<span id="cb3-36"><a href="#cb3-36" aria-hidden="true"></a>            <span class="op">&gt;&gt;=</span> <span class="fu">maybe</span> (lookupEnv <span class="st">&quot;TMPDIR&quot;</span>) (<span class="fu">pure</span> <span class="op">.</span> <span class="dt">Just</span>)</span>
-<span id="cb3-37"><a href="#cb3-37" aria-hidden="true"></a>            )</span></code></pre></div>
+<div class="sourceCode" id="cb3" data-lang="haskell"><pre class="sourceCode code-block haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="co">-- |</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="co">-- Description: An example of accessing XDG directories in Haskell</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a><span class="co">-- Copyright:   (c) 2019 Peter Trško</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a><span class="co">-- License:     BSD3</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a><span class="co">--</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a><span class="co">-- An example of accessing XDG directories in Haskell using minimum amount of</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a><span class="co">-- dependencies while still not requiring us to manually write the low-level</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a><span class="co">-- code. The only exception is 'getXdgDirectory', which requires sensible</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a><span class="co">-- defaults and may always need some hand-holding.</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">XdgDirs</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">Data.Maybe</span> (fromMaybe)</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">System.Environment</span> (lookupEnv)</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true"></a><span class="kw">import</span> <span class="dt">System.Directory</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true"></a>    ( <span class="dt">XdgDirectory</span>(<span class="op">..</span>)</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true"></a>    , <span class="dt">XdgDirectoryList</span>(<span class="op">..</span>)</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true"></a>    , getXdgDirectory</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true"></a>    , getXdgDirectoryList</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true"></a>    )</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true"></a></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true"></a></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true"></a><span class="kw">data</span> <span class="dt">XdgDirs</span> <span class="ot">=</span> <span class="dt">XdgDirs</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true"></a>    {<span class="ot"> configDir ::</span> <span class="dt">FilePath</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true"></a>    ,<span class="ot"> dataDir ::</span> <span class="dt">FilePath</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true"></a>    ,<span class="ot"> cacheDir ::</span> <span class="dt">FilePath</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true"></a>    ,<span class="ot"> runtimeDir ::</span> <span class="dt">FilePath</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true"></a>    ,<span class="ot"> dataDirs ::</span> [<span class="dt">FilePath</span>]</span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true"></a>    ,<span class="ot"> configDirs ::</span> [<span class="dt">FilePath</span>]</span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true"></a>    }</span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true"></a>  <span class="kw">deriving</span> (<span class="dt">Show</span>)</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true"></a></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true"></a><span class="ot">xdgDirs ::</span> <span class="dt">IO</span> <span class="dt">XdgDirs</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true"></a>xdgDirs <span class="ot">=</span> <span class="dt">XdgDirs</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true"></a>    <span class="op">&lt;$&gt;</span> getXdgDirectory <span class="dt">XdgConfig</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true"></a>    <span class="op">&lt;*&gt;</span> getXdgDirectory <span class="dt">XdgData</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true"></a>    <span class="op">&lt;*&gt;</span> getXdgDirectory <span class="dt">XdgCache</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true"></a>    <span class="op">&lt;*&gt;</span> getXdgRuntimeDirectory</span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true"></a>    <span class="op">&lt;*&gt;</span> getXdgDirectoryList <span class="dt">XdgDataDirs</span></span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true"></a>    <span class="op">&lt;*&gt;</span> getXdgDirectoryList <span class="dt">XdgConfigDirs</span></span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true"></a>  <span class="kw">where</span></span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true"></a>    getXdgRuntimeDirectory <span class="ot">=</span> fromMaybe <span class="st">&quot;/tmp&quot;</span></span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true"></a>        <span class="op">&lt;$&gt;</span> ( lookupEnv <span class="st">&quot;XDG_RUNTIME_DIR&quot;</span></span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true"></a>            <span class="op">&gt;&gt;=</span> <span class="fu">maybe</span> (lookupEnv <span class="st">&quot;TMPDIR&quot;</span>) (<span class="fu">pure</span> <span class="op">.</span> <span class="dt">Just</span>)</span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true"></a>            )</span></code></pre></div>
 <h1 id="related-articles">Related Articles</h1>
 <ul>
 <li><a href="https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html">XDG Base Directory Specification</a></li>
@@ -109,7 +118,8 @@ in  { config-dir =
 <li><a href="https://serverfault.com/questions/388840/good-default-for-xdg-runtime-dir">Good default for XDG_RUNTIME_DIR?</a></li>
 </ul>
 
-        </article>
+            </article>
+        </main>
 
         <footer>
             Generated by <a href="http://jaspervdj.be/hakyll">Hakyll</a>
